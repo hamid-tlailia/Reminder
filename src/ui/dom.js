@@ -108,13 +108,13 @@ export function iconHTML(name, size = 24) {
   return `${SVG_OPEN(size)}${ICONS[name] || ICONS.sparkles}</svg>`;
 }
 
-/* ------------------------------ الأرقام ------------------------------ */
-const AR_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+/* ------------------------------ الأرقام (لاتينية عادية) ------------------------------ */
 export function arNum(n) {
-  return String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
+  if (n === null || n === undefined || Number.isNaN(n)) return '0';
+  return String(n);
 }
 export function arCount(n) {
-  return arNum(Number(n || 0).toLocaleString('en-US'));
+  return String(Number(n || 0).toLocaleString('en-US'));
 }
 
 /** تحويل الأرقام العربية-الهندية إلى لاتينية (لقراءة حقول الإدخال) */
@@ -125,16 +125,16 @@ export function toLatinNum(str) {
     .replace(/[^\d.-]/g, '');
 }
 
-/** حقل رقمي بأرقام عربية-هندية */
+/** حقل رقمي بأرقام لاتينية عادية */
 export function numberField({ value = 0, min = 0, max = 1e9, width = '86px', onCommit, label = '' } = {}) {
   const el = h('input', {
-    type: 'text', inputmode: 'numeric', value: arNum(value),
+    type: 'text', inputmode: 'numeric', value: String(value),
     style: { width, textAlign: 'center' }, 'aria-label': label,
   });
   const commit = () => {
     const n = Number(toLatinNum(el.value));
     const v = Math.max(min, Math.min(max, Number.isFinite(n) ? n : value));
-    el.value = arNum(v);
+    el.value = String(v);
     onCommit?.(v);
   };
   el.addEventListener('change', commit);

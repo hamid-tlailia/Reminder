@@ -221,7 +221,7 @@ function jumpSheet(ctx) {
     }, `الجزء ${arNum(i + 1)}`)),
   );
 
-  const search = h('input', { type: 'search', placeholder: 'ابحث عن سورة…', 'aria-label': 'بحث السور' });
+  const search = h('input', { type: 'search', placeholder: 'ابحث عن سورة… (مثال: البقرة، يس)', 'aria-label': 'بحث السور' });
   const results = h('div', { class: 'stack' });
   let surahs = [];
 
@@ -253,7 +253,7 @@ function jumpSheet(ctx) {
     const qq = search.value.trim();
     if (!qq) { results.replaceChildren(); return; }
     const found = surahs
-      .filter((s) => s.name.includes(qq) || String(s.number) === qq)
+      .filter((s) => s.name.includes(qq) || String(s.number) === toLatinNum(qq) || String(s.number) === qq)
       .slice(0, 8)
       .map(surahRow);
     if (found.length) results.replaceChildren(...found);
@@ -269,7 +269,8 @@ function jumpSheet(ctx) {
       grid,
       h('div', { class: 'hr' }),
       h('p', { class: 'small muted', text: 'أو ابحث عن سورة (يحتاج إنترنت أول مرة):' }),
-      search, results,
+      h('div', { class: 'search' }, icon('search', 18), search),
+      results,
     ),
   });
 

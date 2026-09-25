@@ -32,7 +32,10 @@ export function renderTasbeeh(ctx) {
     title: 'اضغط لتغيير الذكر',
     onclick: () => pickText(ctx),
   });
-  textEl.textContent = state.tasbeeh.session.text;
+  // قصّ النص الطويل حتى لا يخرج من حدود المسبحة
+  const fullText = state.tasbeeh.session.text || '';
+  textEl.textContent = fullText;
+  textEl.title = fullText + ' — اضغط لتغيير الذكر';
 
   const numEl = h('div', { class: 'dial__num' });
   const subEl = h('div', { class: 'dial__sub' });
@@ -55,8 +58,9 @@ export function renderTasbeeh(ctx) {
     subEl.textContent = `من ${arNum(target)}`;
     dial.classList.toggle('is-done', c >= target);
     hintEl.textContent = c >= target ? 'أتممت العدد ✨' : 'اضغط للعدّ';
+    const dialSize = Math.min(window.innerWidth * 0.72, 300) + 28;
     ringHost.replaceChildren(progressRing({
-      size: 340, stroke: 6, value: Math.min(1, c / target), gold: c >= target,
+      size: dialSize, stroke: 6, value: Math.min(1, c / target), gold: c >= target,
     }));
   }
 
@@ -71,8 +75,9 @@ export function renderTasbeeh(ctx) {
     dial.classList.toggle('is-done', c >= target);
     subEl.textContent = `من ${arNum(target)}`;
     hintEl.textContent = c >= target ? 'أتممت العدد ✨' : 'اضغط للعدّ';
+    const dialSize = Math.min(window.innerWidth * 0.72, 300) + 28;
     ringHost.firstChild?.replaceWith(progressRing({
-      size: 340, stroke: 6, value: Math.min(1, c / target), gold: c >= target,
+      size: dialSize, stroke: 6, value: Math.min(1, c / target), gold: c >= target,
     }));
     if (c === target) {
       celebrate(0.8);

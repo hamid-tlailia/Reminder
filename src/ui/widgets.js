@@ -2,7 +2,7 @@
    وِردي — عناصر واجهة مشتركة: حلقة التقدّم، بطاقة الذكر، جولة الأذكار
    ========================================================================== */
 
-import { h, icon, arNum, toast, sheet, celebrate, vibrate, chime, copyText } from './dom.js';
+import { h, icon, arNum, toast, sheet, celebrate, vibrate, chime, copyText, numberField } from './dom.js';
 import { store, todayKey, isSteps, isTracker } from '../store.js';
 
 export const PERIOD_LABEL = { morning: 'الصباح', evening: 'المساء', day: 'اليوم' };
@@ -138,15 +138,64 @@ function counterControl(item, period, card, ctx) {
   const btn = h('button', {
     class: `tapper${complete ? ' is-done' : ''}`,
     'aria-label': `عدّ ${item.title} — ${count} من ${target}`,
+    title: 'اضغط للعدّ • اضغط مطوّلًا للنقص',
   }, num);
 
   let holdTimer = null;
   let held = false;
 
+  const applyCount = (next) => {
+    const isDone = target > 0 && next >= target;
+    const itemDone = store.itemStatus(item.id).complete;
+    num.textContent = arNum(next);
+    num.classList.remove('count-pop');
+    void num.offsetWidth;
+    num.classList.add('count-pop');
+    btn.classList.toggle('is-done', isDone);
+    card.classList.toggle('is-done', itemDone);
+    // شارة «تمّ» في رأس البطاقة
+    const head = card.querySelector('.dhikr__head');
+    if (head) {
+      let badge = head.querySelector('.badge--accent');
+      if (itemDone && !badge) {
+        const infoBtn = head.querySelector('.icon-btn');
+        badge = h('span', { class: 'badge badge--accent' }, icon('check', 12), 'تمّ');
+        if (infoBtn) infoBtn.before(badge);
+        else head.append(badge);
+      } else if (!itemDone && badge) {
+        badge.remove();
+      }
+    }
+    // حدّث شارات الأوقات
+    const foot = card.querySelector('.dhikr__foot');
+    if (foot) {
+      const pills = [...foot.querySelectorAll('.slot-pill')];
+      const periods = Object.keys(item.periods || {});
+      pills.forEach((el, i) => {
+        if (periods[i]) el.replaceWith(slotPill(item.id, periods[i]));
+      });
+    }
+    try { window.dispatchEvent(new CustomEvent('wirdi:progress', { detail: { soft: true } })); } catch { /* */ }
+    if (isDone) {
+      card.classList.add('is-pulse');
+      setTimeout(() => card.classList.remove('is-pulse'), 700);
+      onTargetReached(item);
+    }
+  };
+
+  const setBtn = h('button', {
+    class: 'btn btn--sm btn--ghost set-count-btn',
+    'aria-label': 'تعيين العدد',
+    title: 'أدخل العدد الذي وصلت إليه',
+    onclick: (e) => {
+      e.stopPropagation();
+      openSetCount(item, period, () => applyCount(store.count(item.id, period)));
+    },
+  }, icon('edit', 14), 'تعيين');
+
   const doTap = (e) => {
     if (e) {
       const rect = btn.getBoundingClientRect();
-      const id = `r${Math.random().toString(36).slice(2)}`;
       const ripple = h('span', {
         class: 'tapper__ripple',
         style: {
@@ -160,30 +209,19 @@ function counterControl(item, period, card, ctx) {
     }
     const next = store.increment(item.id, period);
     const isDone = next >= target;
-    num.textContent = arNum(next);
-    num.classList.remove('count-pop');
-    void num.offsetWidth;
-    num.classList.add('count-pop');
     vibrate(isDone ? [12, 40, 18] : 10, store.state.settings.vibrate);
     chime(isDone ? 'done' : 'tick', store.state.settings.sound);
-    btn.classList.toggle('is-done', isDone);
-    if (isDone) {
-      card.classList.add('is-done');
-      card.classList.add('is-pulse');
-      setTimeout(() => card.classList.remove('is-pulse'), 700);
-      onTargetReached(item);
-    }
+    applyCount(next);
   };
 
-  btn.addEventListener('pointerdown', (e) => {
+  btn.addEventListener('pointerdown', () => {
     held = false;
     clearTimeout(holdTimer);
     holdTimer = setTimeout(() => {
       held = true;
       const next = store.decrement(item.id, period);
-      num.textContent = arNum(next);
       vibrate(6, store.state.settings.vibrate);
-      btn.classList.toggle('is-done', next >= target && target > 0);
+      applyCount(next);
     }, 500);
   });
   btn.addEventListener('pointerup', (e) => {
@@ -191,7 +229,18 @@ function counterControl(item, period, card, ctx) {
     if (!held) doTap(e);
   });
   btn.addEventListener('pointerleave', () => clearTimeout(holdTimer));
-  btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    openSetCount(item, period, () => applyCount(store.count(item.id, period)));
+  });
+
+  // غلاف: زر العدّ + زر التعيين يظهر في التذييل
+  // نُلحق زر التعيين بالتذييل بعد إنشاء البطاقة
+  queueMicrotask(() => {
+    const foot = card.querySelector('.dhikr__foot');
+    if (foot && !foot.querySelector('.set-count-btn')) foot.append(setBtn);
+  });
+
   return btn;
 }
 
@@ -207,9 +256,10 @@ export function onTargetReached(item) {
 }
 
 /* ------------------------------ لوحة الفوائد ------------------------------ */
-export function openInfoSheet(item, { onEdit } = {}) {
+export function openInfoSheet(item, { onEdit, onChange } = {}) {
   const status = store.itemStatus(item.id);
   const periods = Object.keys(item.periods || {});
+  const isCounter = item.type !== 'tracker' && item.type !== 'steps';
 
   const rows = [];
   if (item.benefit) {
@@ -225,19 +275,23 @@ export function openInfoSheet(item, { onEdit } = {}) {
     ));
   }
 
+  const notifyHome = () => {
+    onTargetReached(item);
+    if (onChange) onChange();
+    else {
+      try {
+        window.dispatchEvent(new CustomEvent('wirdi:progress', { detail: { soft: false } }));
+      } catch { /* تجاهل */ }
+    }
+  };
+
   const counts = h('div', { class: 'stack' });
   for (const p of periods) {
     const t = item.periods[p];
     const c = store.count(item.id, p);
     const badge = h('span', { class: `badge${c >= t ? ' badge--accent' : ''}`, text: `${arNum(c)} / ${arNum(t)}` });
-    const row = h('div', { class: 'list-row' },
-      icon(PERIOD_ICON[p], 18),
-      h('div', {},
-        h('div', { class: 'list-row__t', text: PERIOD_LABEL[p] }),
-        h('div', { class: 'list-row__s', text: `العدد المطلوب: ${arNum(t)}` }),
-      ),
-      h('span', { class: 'spacer' }),
-      badge,
+
+    const actions = [
       h('button', {
         class: 'btn btn--sm btn--ghost', style: { padding: '.3rem .55rem' },
         'aria-label': `وسم ${PERIOD_LABEL[p]} كمكتمل`,
@@ -247,7 +301,7 @@ export function openInfoSheet(item, { onEdit } = {}) {
           badge.textContent = `${arNum(t)} / ${arNum(t)}`;
           badge.classList.add('badge--accent');
           toast('تم وسمه كمكتمل ✔', { icon: 'checkCircle' });
-          onTargetReached(item);
+          notifyHome();
         },
       }, icon('check', 15)),
       h('button', {
@@ -255,11 +309,38 @@ export function openInfoSheet(item, { onEdit } = {}) {
         'aria-label': `تصفير ${PERIOD_LABEL[p]}`,
         onclick: () => {
           store.setCount(item.id, p, 0);
-          badge.textContent = `٠ / ${arNum(t)}`;
+          badge.textContent = `0 / ${arNum(t)}`;
           badge.className = 'badge';
           toast('تم التصفير', { icon: 'refresh' });
+          notifyHome();
         },
       }, icon('refresh', 15)),
+    ];
+
+    // إدخال يدوي للعدد الذي وصلت إليه (للأذكار ذات العدّاد)
+    if (isCounter && t > 1) {
+      actions.unshift(h('button', {
+        class: 'btn btn--sm btn--ghost', style: { padding: '.3rem .55rem' },
+        'aria-label': `تعيين عدد ${PERIOD_LABEL[p]}`,
+        title: 'أدخل العدد الذي وصلت إليه',
+        onclick: () => openSetCount(item, p, () => {
+          const nc = store.count(item.id, p);
+          badge.textContent = `${arNum(nc)} / ${arNum(t)}`;
+          badge.className = `badge${nc >= t ? ' badge--accent' : ''}`;
+          notifyHome();
+        }),
+      }, icon('edit', 15)));
+    }
+
+    const row = h('div', { class: 'list-row' },
+      icon(PERIOD_ICON[p], 18),
+      h('div', {},
+        h('div', { class: 'list-row__t', text: PERIOD_LABEL[p] }),
+        h('div', { class: 'list-row__s', text: `العدد المطلوب: ${arNum(t)}` }),
+      ),
+      h('span', { class: 'spacer' }),
+      badge,
+      ...actions,
     );
     counts.append(row);
   }
@@ -267,6 +348,8 @@ export function openInfoSheet(item, { onEdit } = {}) {
   const body = h('div', { class: 'stack' },
     item.type !== 'tracker' ? h('div', { class: 'dhikr-text dhikr-text--sm', text: item.text }) : null,
     counts,
+    isCounter ? h('p', { class: 'small muted', style: { lineHeight: '1.8' },
+      text: 'إن ذكرت خارج التطبيق، اضغط أيقونة التعديل لإدخال العدد الذي وصلت إليه، أو ✓ لوسم الذكر مكتملًا.' }) : null,
     ...rows,
     status.complete ? h('div', { class: 'banner' }, icon('checkCircle', 20), h('span', { text: 'أتممت هذا الذكر اليوم. تقبّل الله.' })) : null,
   );
@@ -287,13 +370,51 @@ export function openInfoSheet(item, { onEdit } = {}) {
     class: 'btn btn--primary btn--block',
     onclick: (e) => {
       if (item.type === 'tracker') { location.hash = '#quran'; }
-      else store.setCount(item.id, periods[0], store.count(item.id, periods[0]));
       e.currentTarget.closest('.sheet')?.dispatchEvent(new CustomEvent('close'));
       document.querySelector('.sheet-backdrop')?.click();
+      // أعد رسم الرئيسية فقط إن تغيّر شيء (onChange يتكفّل بذلك)
+      onChange?.();
     },
   }, 'حسنًا'));
 
   sheet({ title: item.title, body, footer });
+}
+
+/** إدخال يدوي للعدد الذي وصلت إليه */
+function openSetCount(item, period, onDone) {
+  const target = item.periods[period] || 0;
+  const current = store.count(item.id, period);
+  let picked = current;
+  const inp = numberField({
+    value: current, min: 0, max: target || 99999, width: '140px',
+    label: 'العدد الذي وصلت إليه',
+    onCommit: (v) => { picked = v; },
+  });
+  const presets = [0, Math.floor(target / 4), Math.floor(target / 2), Math.floor(target * 0.75), target]
+    .filter((v, i, a) => a.indexOf(v) === i && v >= 0);
+  const s = sheet({
+    title: `تعيين العدد — ${PERIOD_LABEL[period] || ''}`,
+    body: h('div', { class: 'stack' },
+      h('p', { class: 'small muted', text: `الهدف: ${arNum(target)}. أدخل ما وصلت إليه دون العدّ داخل التطبيق.` }),
+      h('div', { class: 'row', style: { justifyContent: 'center' } }, inp),
+      h('div', { class: 'chiprow', style: { justifyContent: 'center', flexWrap: 'wrap' } },
+        ...presets.map((v) => h('button', {
+          class: 'chip',
+          onclick: () => { picked = v; inp.value = String(v); },
+        }, arNum(v))),
+      ),
+    ),
+    footer: h('button', {
+      class: 'btn btn--primary btn--block',
+      onclick: () => {
+        store.setCount(item.id, period, picked);
+        s.close();
+        toast(`تم تعيين العدد: ${arNum(picked)} / ${arNum(target)}`, { icon: 'checkCircle' });
+        onDone?.();
+      },
+    }, 'حفظ'),
+  });
+  setTimeout(() => inp.focus?.(), 80);
 }
 
 /* ------------------------------ جولة الأذكار (خطوات) ------------------------------ */
@@ -309,7 +430,7 @@ export function openTour(item, period = 'day', { onFinish } = {}) {
   const dots = h('div', { class: 'stepdots' });
   const label = h('div', { class: 'small muted', text: '' });
   const textEl = h('div', { class: 'flow__step' });
-  const numEl = h('span', { text: '٠' });
+  const numEl = h('span', { text: '0' });
   const targetEl = h('small', { text: '' });
   const big = h('button', { class: 'flow__big' }, numEl, targetEl);
   const roundLbl = h('span', { class: 'badge', text: '' });
@@ -326,7 +447,7 @@ export function openTour(item, period = 'day', { onFinish } = {}) {
     textEl.textContent = store.state.settings.tashkeel ? step.text : stripLocal(step.text);
     const shownCount = Math.min(count, step.target);
     numEl.textContent = arNum(shownCount);
-    targetEl.textContent = `من ${arNum(step.target)} • ${step.label}`;
+    targetEl.textContent = `من ${arNum(step.target)} • ${step.label || ''}`;
     big.classList.toggle('is-done', shownCount >= step.target);
     roundLbl.textContent = `الجولة ${arNum(rounds)} / ${arNum(dayTarget)}`;
     roundLbl.className = `badge${rounds >= dayTarget ? ' badge--accent' : ''}`;
