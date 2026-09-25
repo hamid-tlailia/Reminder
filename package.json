@@ -1,0 +1,18 @@
+{
+  "name": "wirdi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "وِردي — تطبيق أذكار عصري (PWA) يحفظ مكانك في كل ذكر، ويقسّم الأذكار حسب الوقت، مع الفوائد والمصادر ووِرد القرآن.",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/server.mjs 4173",
+    "dev": "node tools/server.mjs 4173",
+    "test": "node tools/smoke.mjs",
+    "icons": "node tools/make_icons.mjs"
+  },
+  "keywords": ["adhkar", "أذكار", "tasbeeh", "quran", "pwa", "islamic"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
