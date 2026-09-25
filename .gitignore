@@ -1,0 +1,19 @@
+# تبعيات
+node_modules/
+.npm/
+npm-debug.log*
+
+# ملفات نظام
+.DS_Store
+Thumbs.db
+
+# بيئات وبناء
+dist/
+build/
+out/
+*.zip
+
+# أدوات محلية
+.preview/
+.vscode/
+.idea/

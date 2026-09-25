@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<title>وِردي — أذكاري ووِردي اليومي</title>
+<meta name="description" content="وِردي: تطبيق عصري للأذكار اليومية — أذكار الصباح والمساء، الاستغفار، الصلاة على النبي ﷺ، وِرد القرآن، مسبحة إلكترونية، مع حفظ تلقائي لمكان توقّفك.">
+<meta name="theme-color" content="#06110C">
+<meta name="color-scheme" content="dark light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="وِردي">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="وِردي — أذكاري ووِردي اليومي">
+<meta property="og:description" content="لا تنسَ أين وصلت: تابع أذكارك ومسبحتك ووِرد القرآن في مكان واحد.">
+<meta property="og:image" content="assets/icons/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Kufi+Arabic:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body class="boot">
+
+<div id="splash" class="splash">
+  <svg class="splash__mark" viewBox="0 0 120 120" aria-hidden="true">
+    <defs>
+      <linearGradient id="sp1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFF6DC"/><stop offset="1" stop-color="#C2923C"/>
+      </linearGradient>
+    </defs>
+    <circle class="splash__track" cx="60" cy="60" r="42" fill="none" stroke="rgba(231,199,126,.18)" stroke-width="3"/>
+    <circle class="splash__spin" cx="60" cy="60" r="42" fill="none" stroke="url(#sp1)" stroke-width="3"
+            stroke-linecap="round" stroke-dasharray="66 198"/>
+    <rect x="42" y="42" width="36" height="36" rx="7" fill="none" stroke="url(#sp1)" stroke-width="2.4"/>
+    <rect x="42" y="42" width="36" height="36" rx="7" fill="none" stroke="url(#sp1)" stroke-width="2.4"
+          transform="rotate(45 60 60)"/>
+    <path d="M60 50 L70 60 L60 70 L50 60 Z" fill="url(#sp1)"/>
+  </svg>
+  <p class="splash__title">وِردي</p>
+  <p class="splash__sub">نجهّز أذكارك…</p>
+</div>
+
+<div id="app" hidden></div>
+
+<noscript>
+  <div style="padding:2rem;text-align:center;font-size:1.1rem">
+    هذا التطبيق يحتاج إلى تشغيل JavaScript في المتصفح.
+  </div>
+</noscript>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
