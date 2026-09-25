@@ -58,7 +58,7 @@ export function formatGregorian(d = new Date()) {
 
 export function formatHijri(d = new Date()) {
   try {
-    const fmt = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-arab', {
+    const fmt = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn', {
       day: 'numeric', month: 'long', year: 'numeric',
     });
     const out = fmt.format(d);

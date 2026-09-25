@@ -130,19 +130,19 @@ export function renderLibrary(ctx) {
         if (it && isSteps(it)) featured.push(it);
       }
     }
-    listHost.replaceChildren(
-      featured.length && category === 'all' && !query
-        ? h('div', { class: 'section' }, h('h2', { class: 'section__title' }, h('span', { class: 'dot' }), 'جولات وِردك'))
-        : null,
-      ...featured.slice(0, 2).map((it) => itemRow(it)),
-      h('div', { class: 'section' },
-        h('h2', { class: 'section__title' }, h('span', { class: 'dot' }), 'الأذكار'),
-        h('span', { class: 'spacer' }),
-        h('span', { class: 'section__hint', text: `${arNum(items.length)} نتيجة` }),
-      ),
-      ...items.map((it) => itemRow(it)),
-      items.length ? null : h('div', { class: 'empty' }, icon('search', 40), h('p', { text: 'لا نتائج مطابقة… جرّب كلمة أخرى.' })),
-    );
+    const nodes = [];
+    if (featured.length && category === 'all' && !query) {
+      nodes.push(h('div', { class: 'section' }, h('h2', { class: 'section__title' }, h('span', { class: 'dot' }), 'جولات وِردك')));
+      nodes.push(...featured.slice(0, 2).map((it) => itemRow(it)));
+    }
+    nodes.push(h('div', { class: 'section' },
+      h('h2', { class: 'section__title' }, h('span', { class: 'dot' }), 'الأذكار'),
+      h('span', { class: 'spacer' }),
+      h('span', { class: 'section__hint', text: `${arNum(items.length)} نتيجة` }),
+    ));
+    if (items.length) nodes.push(...items.map((it) => itemRow(it)));
+    else nodes.push(h('div', { class: 'empty' }, icon('search', 40), h('p', { text: 'لا نتائج مطابقة… جرّب كلمة أخرى.' })));
+    listHost.replaceChildren(...nodes);
   }
 
   root.append(

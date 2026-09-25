@@ -61,10 +61,13 @@ export function renderSettings(ctx) {
   );
 
   /* ------------------------------ التنبيهات ------------------------------ */
-  const timeInput = (value, onChange) => {
-    const inp = h('input', { type: 'time', value, 'aria-label': 'وقت التنبيه' });
+  const timeField = (value, onChange, label, ic) => {
+    const inp = h('input', { type: 'time', value, 'aria-label': label });
     inp.addEventListener('change', () => onChange(inp.value));
-    return inp;
+    return h('label', { class: 'time-field', title: label },
+      icon(ic || 'bell', 16),
+      inp,
+    );
   };
 
   const notifyRow = settingRow(
@@ -78,10 +81,16 @@ export function renderSettings(ctx) {
 
   const notifCard = h('section', { class: 'card' },
     notifyRow,
-    s.reminders.enabled ? settingRow('وقت أذكار الصباح', null,
-      timeInput(s.reminders.morning, (v) => store.setSetting('reminders', { ...store.state.settings.reminders, morning: v }))) : null,
-    s.reminders.enabled ? settingRow('وقت أذكار المساء', null,
-      timeInput(s.reminders.evening, (v) => store.setSetting('reminders', { ...store.state.settings.reminders, evening: v }))) : null,
+    s.reminders.enabled ? settingRow(
+      'وقت أذكار الصباح',
+      'سيصلك تذكير في هذا الوقت تقريبًا',
+      timeField(s.reminders.morning, (v) => store.setSetting('reminders', { ...store.state.settings.reminders, morning: v }), 'وقت أذكار الصباح', 'sunrise'),
+    ) : null,
+    s.reminders.enabled ? settingRow(
+      'وقت أذكار المساء',
+      'سيصلك تذكير في هذا الوقت تقريبًا',
+      timeField(s.reminders.evening, (v) => store.setSetting('reminders', { ...store.state.settings.reminders, evening: v }), 'وقت أذكار المساء', 'sunset'),
+    ) : null,
     s.reminders.enabled ? settingRow('صلاحية الإشعارات', 'قد تحتاج إلى السماح من إعدادات المتصفح', h('button', {
       class: 'btn btn--sm btn--ghost',
       onclick: async () => {
@@ -183,7 +192,9 @@ export function renderSettings(ctx) {
     h('div', { class: 'section' },
       h('h2', { class: 'section__title' }, h('span', { class: 'dot' }), 'الإعدادات'),
     ),
-    appearance, timeCard, notifCard, quranCard, feelCard, installCard, dataCard, aboutCard,
+    h('div', { class: 'settings-stack' },
+      appearance, timeCard, notifCard, quranCard, feelCard, installCard, dataCard, aboutCard,
+    ),
   );
   return root;
 }

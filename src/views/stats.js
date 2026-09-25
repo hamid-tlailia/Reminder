@@ -76,7 +76,7 @@ export function renderStats(ctx) {
     h('div', { class: 'row' },
       h('h2', { class: 'section__title', style: { fontSize: '.95rem' } }, icon('calendar', 17), 'خريطة الالتزام'),
       h('span', { class: 'spacer' }),
-      h('span', { class: 'small muted', text: '١٢ أسبوعًا' }),
+      h('span', { class: 'small muted', text: '12 أسبوعًا' }),
     ),
     h('div', { style: { marginTop: '.7rem' } }, heat),
   );
@@ -115,13 +115,13 @@ export function renderStats(ctx) {
   const totalDhikr = state.stats.totalDhikr || 0;
   const badges = [
     { id: 'first', name: 'البداية المباركة', desc: 'أتممت وِردك يومًا كاملًا', got: (state.stats.lastCompleteDay || state.stats.daysActive) && totalDhikr > 0, icon: 'sparkles' },
-    { id: 'streak3', name: 'ثلاثة أيام', desc: 'سلسلة ٣ أيام متتالية', got: (state.stats.best || 0) >= 3, icon: 'fire' },
-    { id: 'streak7', name: 'أسبوع كامل', desc: 'سلسلة ٧ أيام متتالية', got: (state.stats.best || 0) >= 7, icon: 'seal' },
-    { id: 'streak30', name: 'شهر من الذكر', desc: 'سلسلة ٣٠ يومًا', got: (state.stats.best || 0) >= 30, icon: 'victory' },
-    { id: 'dhikr1000', name: 'ألف ذكر', desc: '١٠٠٠ ذكر مسجّل', got: totalDhikr >= 1000, icon: 'beads' },
-    { id: 'dhikr10000', name: 'عشرة آلاف', desc: '١٠٠٠٠ ذكر مسجّل', got: totalDhikr >= 10000, icon: 'star' },
-    { id: 'quran7', name: 'وِرد القرآن أسبوعًا', desc: '٧ أيام بورد قرآن مكتمل', got: Object.keys(state.quran.log).filter((k) => state.quran.log[k] >= state.settings.quranPages).length >= 7, icon: 'book' },
-    { id: 'tahleel', name: 'المئة تهليلة', desc: '١٠٠ «لا إله إلا الله» في يوم', got: (state.progress[t]?.['tahleel-100']?.day || 0) >= 100, icon: 'target' },
+    { id: 'streak3', name: 'ثلاثة أيام', desc: 'سلسلة 3 أيام متتالية', got: (state.stats.best || 0) >= 3, icon: 'fire' },
+    { id: 'streak7', name: 'أسبوع كامل', desc: 'سلسلة 7 أيام متتالية', got: (state.stats.best || 0) >= 7, icon: 'seal' },
+    { id: 'streak30', name: 'شهر من الذكر', desc: 'سلسلة 30 يومًا', got: (state.stats.best || 0) >= 30, icon: 'victory' },
+    { id: 'dhikr1000', name: 'ألف ذكر', desc: '1000 ذكر مسجّل', got: totalDhikr >= 1000, icon: 'beads' },
+    { id: 'dhikr10000', name: 'عشرة آلاف', desc: '10000 ذكر مسجّل', got: totalDhikr >= 10000, icon: 'star' },
+    { id: 'quran7', name: 'وِرد القرآن أسبوعًا', desc: '7 أيام بورد قرآن مكتمل', got: Object.keys(state.quran.log).filter((k) => state.quran.log[k] >= state.settings.quranPages).length >= 7, icon: 'book' },
+    { id: 'tahleel', name: 'المئة تهليلة', desc: '100 «لا إله إلا الله» في يوم', got: (state.progress[t]?.['tahleel-100']?.day || 0) >= 100, icon: 'target' },
   ];
 
   const badgeGrid = h('div', { class: 'heat', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(74px, 1fr))', gap: '.5rem' } });

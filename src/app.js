@@ -220,6 +220,12 @@ function boot() {
   ctx.installPrompt = null;
 
   window.addEventListener('hashchange', render);
+  // تحديث شريط التقدّم والرئيسية فور تغيّر الأعداد
+  window.addEventListener('wirdi:progress', (e) => {
+    paintNav();
+    // soft = تحديث الشريط فقط (أثناء العدّ) — وإلا أعد رسم الرئيسية
+    if (!e.detail?.soft && currentTab() === 'today') render();
+  });
   render();
   watchMidnight();
 

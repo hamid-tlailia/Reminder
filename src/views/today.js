@@ -26,20 +26,42 @@ export function renderToday(ctx) {
   const hijri = formatHijri();
   const nextLabel = mainPeriod === 'morning' ? 'وِرد المساء' : 'وِرد الصباح';
 
-  const ring = progressRing({
-    size: 78, stroke: 7, value: st.pct,
-    label: `${arNum(Math.round(st.pct * 100))}%`,
-  });
+  const ringHost = h('div', { class: 'hero__ring' });
+  const doneLbl = h('b', { text: `${arNum(st.completeCount)}/${arNum(st.total)}` });
+  const barFill = h('div', { class: 'bar__fill', style: { width: `${Math.round(st.pct * 100)}%` } });
+  const totalBadge = h('span', { class: 'badge' }, icon('target', 12), `إجمالي اليوم: ${arNum(st.done)}`);
+
+  function paintHeroProgress() {
+    const s = store.wirdStatus();
+    ringHost.replaceChildren(progressRing({
+      size: 78, stroke: 7, value: s.pct,
+      label: `${arNum(Math.round(s.pct * 100))}%`,
+    }));
+    doneLbl.textContent = `${arNum(s.completeCount)}/${arNum(s.total)}`;
+    barFill.style.width = `${Math.round(s.pct * 100)}%`;
+    totalBadge.lastChild.textContent = `إجمالي اليوم: ${arNum(s.done)}`;
+  }
+  paintHeroProgress();
+
+  // حدّث الحلقة فور أي تقدّم دون إعادة بناء الصفحة
+  const onProg = (e) => {
+    if (!document.body.contains(ringHost)) {
+      window.removeEventListener('wirdi:progress', onProg);
+      return;
+    }
+    if (e.detail?.soft) paintHeroProgress();
+  };
+  window.addEventListener('wirdi:progress', onProg);
 
   const hero = h('section', { class: 'hero' },
     h('div', { class: 'hero__top' },
-      ring,
+      ringHost,
       h('div', {},
         h('h1', { class: 'hero__hi', text: `${greeting} 🌿` }),
         h('p', { class: 'hero__date', text: `${formatGregorian()}${hijri ? ' • ' + hijri : ''}` }),
         h('p', { class: 'hero__date' },
           'الوقت الآن: ', h('b', { text: PERIOD_LABEL[mainPeriod] }),
-          ' • أُنجز ', h('b', { text: `${arNum(st.completeCount)}/${arNum(st.total)}` }), ' من وِردك'),
+          ' • أُنجز ', doneLbl, ' من وِردك'),
       ),
       h('span', { class: 'spacer' }),
       h('button', {
@@ -54,10 +76,10 @@ export function renderToday(ctx) {
         },
       }, icon(mainPeriod === 'morning' ? 'sunrise' : 'sunset', 20)),
     ),
-    h('div', { class: 'bar' }, h('div', { class: 'bar__fill', style: { width: `${Math.round(st.pct * 100)}%` } })),
+    h('div', { class: 'bar' }, barFill),
     h('div', { class: 'row row--wrap' },
       h('span', { class: 'badge badge--accent' }, icon('fire', 12), `السلسلة: ${arNum(state.stats.streak)} يوم`),
-      h('span', { class: 'badge' }, icon('target', 12), `إجمالي اليوم: ${arNum(st.done)}`),
+      totalBadge,
       h('span', { class: 'spacer' }),
       h('button', {
         class: 'btn btn--sm btn--ghost', onclick: () => openAddItem(ctx),
@@ -100,7 +122,11 @@ export function renderToday(ctx) {
   active.sort((a, b) => (a.pin || 99) - (b.pin || 99));
   others.sort((a, b) => (a.pin || 99) - (b.pin || 99));
 
-  const cardCtx = { go, onOpenTour: (item, p) => openTour(item, p, { onFinish: ctx.rerender }), onInfo: (item) => openInfoSheet(item) };
+  const cardCtx = {
+    go,
+    onOpenTour: (item, p) => openTour(item, p, { onFinish: ctx.rerender }),
+    onInfo: (item) => openInfoSheet(item, { onChange: ctx.rerender }),
+  };
 
   if (!wirdItems.length) {
     list.append(h('div', { class: 'card card--pad empty' },
