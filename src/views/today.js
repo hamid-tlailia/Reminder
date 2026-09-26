@@ -25,6 +25,7 @@ export function renderToday(ctx) {
   const greeting = greetingHour < 12 ? 'صباح الخير' : (greetingHour < 17 ? 'نهارك مبارك' : 'مساء الخير');
   const hijri = formatHijri();
   const nextLabel = mainPeriod === 'morning' ? 'وِرد المساء' : 'وِرد الصباح';
+  const manualView = state.settings.timeMode !== 'auto'; // عرضٌ يدوي لا يتبع الساعة
 
   const ringHost = h('div', { class: 'hero__ring' });
   const doneLbl = h('b', { text: `${arNum(st.completeCount)}/${arNum(st.total)}` });
@@ -65,8 +66,9 @@ export function renderToday(ctx) {
       ),
       h('span', { class: 'spacer' }),
       h('button', {
-        class: 'icon-btn', 'aria-label': 'تبديل الوقت',
-        title: 'عرض وِرد الصباح/المساء',
+        class: `icon-btn${manualView ? ' is-on' : ''}`,
+        'aria-label': manualView ? 'العودة للعرض التلقائي حسب الساعة' : 'تبديل الوقت',
+        title: manualView ? 'عرضٌ يدوي مفعّل — اضغط للعودة للتلقائي حسب الساعة' : 'عرض وِرد الصباح/المساء',
         onclick: () => {
           const cur = state.settings.timeMode;
           const next = cur === 'auto' ? (mainPeriod === 'morning' ? 'evening' : 'morning') : 'auto';

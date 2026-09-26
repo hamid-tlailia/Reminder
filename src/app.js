@@ -141,7 +141,8 @@ function paintNav() {
   const subtitle = shell?.subtitle;
   if (subtitle) {
     const period = store.activePeriods[0];
-    subtitle.textContent = `${PERIOD_LABEL[period]} • أُنجز ${st.completeCount}/${st.total} (${Math.round(st.pct * 100)}%)`;
+    const manual = store.state.settings.timeMode !== 'auto';
+    subtitle.textContent = `${PERIOD_LABEL[period]}${manual ? ' (يدوي)' : ''} • أُنجز ${st.completeCount}/${st.total} (${Math.round(st.pct * 100)}%)`;
   }
   void tab;
 }
@@ -195,16 +196,35 @@ function checkReminders() {
   }
 }
 
-function watchMidnight() {
-  let last = todayKey();
+/* ------------------------------ الساعة ------------------------------ *
+ * يعاد الرسم عند تغيّر اليوم (منتصف الليل) وعند انقلاب الوقت:
+ * ٥:٠٠ صباحًا (مساء ← صباح) و ١٢:٠٠ ظهرًا (صباح ← مساء).
+ * بدونه تبقى الشاشة على «المساء» حتى بعد الفجر إن بقي التطبيق مفتوحًا. */
+let lastClock = null;
+
+function syncClock() {
+  const day = todayKey();
+  const period = store.autoPeriod;
+  if (!lastClock) { lastClock = { day, period }; return; }
+  if (day === lastClock.day && period === lastClock.period) return;
+  // نافذة حوار مفتوحة؟ لا تقاطع المستخدم — أعد المحاولة في الدورة التالية
+  if (document.querySelector('.sheet')) return;
+  const newDay = day !== lastClock.day;
+  const flipped = period !== lastClock.period;
+  lastClock = { day, period };
+  if (newDay) store.rollover();
+  render();
+  if (newDay) toast('يوم جديد، وِرد جديد 🌅', { icon: 'sunrise' });
+  else if (flipped && store.state.settings.timeMode === 'auto') {
+    toast(`حان وقت أذكار ${PERIOD_LABEL[period]}`, { icon: period === 'morning' ? 'sunrise' : 'sunset' });
+  }
+}
+
+function watchClock() {
+  syncClock(); // تهيئة المرجع الأولي دون رسم
   setInterval(() => {
-    const t = todayKey();
-    if (t !== last) {
-      last = t;
-      store.rollover();
-      render();
-      toast('يوم جديد، وِرد جديد 🌅', { icon: 'sunrise' });
-    }
+    syncClock();
+    applyTheme(); // الثيم التلقائي يتبع الساعة (٦ صباحًا / ٦ مساءً) دون انتظار تفاعل
     checkReminders();
   }, 30000);
 }
@@ -227,7 +247,7 @@ function boot() {
     if (!e.detail?.soft && currentTab() === 'today') render();
   });
   render();
-  watchMidnight();
+  watchClock();
 
   // شاشة البدء
   requestAnimationFrame(() => {
