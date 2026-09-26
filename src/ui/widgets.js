@@ -64,15 +64,14 @@ export function dhikrCard(item, ctx = {}) {
     dataset: { id: item.id, accent: item.accent || 'accent' },
   });
 
-  /* الرأس */
+  /* الرأس — العنوان يتقلّص، والشارة وزر التفاصيل يبقيان ظاهرين عند الإتمام */
   const head = h('div', { class: 'dhikr__head' });
   const title = h('h3', { class: 'dhikr__title' }, icon(item.icon || (item.type === 'steps' ? 'layers' : 'sparkles'), 16),
     h('span', { text: item.title }));
   head.append(title);
-  head.append(h('span', { class: 'spacer' }));
-  if (status.complete) head.append(h('span', { class: 'badge badge--accent' }, icon('check', 12), 'تمّ'));
+  if (status.complete) head.append(doneBadge());
   head.append(h('button', {
-    class: 'icon-btn', style: { width: '36px', height: '36px' },
+    class: 'icon-btn dhikr__info',
     'aria-label': `تفاصيل ${item.title}`,
     onclick: () => onInfo?.(item),
   }, icon('info', 18)));
@@ -89,14 +88,17 @@ export function dhikrCard(item, ctx = {}) {
   });
   textNode.textContent = store.state.settings.tashkeel ? item.text : stripLocal(item.text);
 
-  /* التذييل */
+  /* التذييل + أدوات العدّ في صف يلتف دون أن يخرج عن البطاقة */
   const foot = h('div', { class: 'dhikr__foot' });
   for (const p of periods) foot.append(slotPill(item.id, p));
   if (item.source) foot.append(h('span', { class: 'dhikr__meta', text: `— ${item.source}` }));
-  foot.append(h('span', { class: 'spacer' }));
 
-  card.append(head, textNode, h('div', { class: 'row' }, foot, counterControl(item, cur, card, ctx)));
+  card.append(head, textNode, h('div', { class: 'dhikr__actions' }, foot, counterControl(item, cur, card, ctx)));
   return card;
+}
+
+function doneBadge() {
+  return h('span', { class: 'badge badge--accent dhikr__done' }, icon('check', 12), 'تمّ');
 }
 
 function stripLocal(t) {
@@ -109,12 +111,12 @@ function counterControl(item, period, card, ctx) {
     const pages = store.state.settings.quranPages;
     const donePages = store.quranPagesIn();
     const complete = donePages >= pages;
-    return h('button', {
+    return h('div', { class: 'dhikr__controls' }, h('button', {
       class: `tapper${complete ? ' is-done' : ''}`,
       'aria-label': 'افتح وِرد القرآن',
       onclick: () => ctx.go?.('quran'),
-    }, h('span', { style: { fontSize: '.8rem', lineHeight: '1.2' } },
-      complete ? 'تمّ ✓' : `${arNum(donePages)}/${arNum(pages)}`));
+    }, h('span', { class: 'tapper__label' },
+      complete ? 'تمّ ✓' : `${arNum(donePages)}/${arNum(pages)}`)));
   }
 
   if (isSteps(item)) {
@@ -122,19 +124,19 @@ function counterControl(item, period, card, ctx) {
     const st = store.stepState(item.id);
     const started = st.i > 0 || st.c > 0;
     const inside = done >= (item.periods[period] || 1);
-    return h('button', {
+    return h('div', { class: 'dhikr__controls' }, h('button', {
       class: `tapper${inside ? ' is-done' : ''}`,
       'aria-label': `ابدأ ${item.title}`,
       style: started && !inside ? { borderColor: 'var(--gold)' } : {},
       onclick: () => ctx.onOpenTour?.(item, period),
-    }, h('span', { style: { fontSize: '.78rem', lineHeight: '1.15', fontWeight: '700' } },
-      inside ? 'تمّ ✓' : (started ? 'تابع' : 'ابدأ')));
+    }, h('span', { class: 'tapper__label' },
+      inside ? 'تمّ ✓' : (started ? 'تابع' : 'ابدأ'))));
   }
 
   const target = item.periods[period] || 0;
   const count = store.count(item.id, period);
   const complete = target > 0 && count >= target;
-  const num = h('span', { text: arNum(count) });
+  const num = h('span', { class: 'tapper__num', text: arNum(count) });
   const btn = h('button', {
     class: `tapper${complete ? ' is-done' : ''}`,
     'aria-label': `عدّ ${item.title} — ${count} من ${target}`,
@@ -144,7 +146,7 @@ function counterControl(item, period, card, ctx) {
   let holdTimer = null;
   let held = false;
 
-  const applyCount = (next) => {
+  const syncChrome = (next) => {
     const isDone = target > 0 && next >= target;
     const itemDone = store.itemStatus(item.id).complete;
     num.textContent = arNum(next);
@@ -152,21 +154,20 @@ function counterControl(item, period, card, ctx) {
     void num.offsetWidth;
     num.classList.add('count-pop');
     btn.classList.toggle('is-done', isDone);
+    btn.setAttribute('aria-label', `عدّ ${item.title} — ${next} من ${target}`);
     card.classList.toggle('is-done', itemDone);
-    // شارة «تمّ» في رأس البطاقة
     const head = card.querySelector('.dhikr__head');
     if (head) {
-      let badge = head.querySelector('.badge--accent');
+      let badge = head.querySelector('.dhikr__done');
       if (itemDone && !badge) {
-        const infoBtn = head.querySelector('.icon-btn');
-        badge = h('span', { class: 'badge badge--accent' }, icon('check', 12), 'تمّ');
+        const infoBtn = head.querySelector('.dhikr__info');
+        badge = doneBadge();
         if (infoBtn) infoBtn.before(badge);
         else head.append(badge);
       } else if (!itemDone && badge) {
         badge.remove();
       }
     }
-    // حدّث شارات الأوقات
     const foot = card.querySelector('.dhikr__foot');
     if (foot) {
       const pills = [...foot.querySelectorAll('.slot-pill')];
@@ -176,11 +177,23 @@ function counterControl(item, period, card, ctx) {
       });
     }
     try { window.dispatchEvent(new CustomEvent('wirdi:progress', { detail: { soft: true } })); } catch { /* */ }
-    if (isDone) {
-      card.classList.add('is-pulse');
-      setTimeout(() => card.classList.remove('is-pulse'), 700);
-      onTargetReached(item);
-    }
+  };
+
+  /** احتفال الإتمام مرة واحدة فقط — لا يُعاد عند الضغط على عدّاد مكتمل */
+  const finishIfNew = (prev, next) => {
+    if (!(target > 0 && next >= target && prev < target)) return;
+    card.classList.add('is-pulse');
+    setTimeout(() => card.classList.remove('is-pulse'), 700);
+    onTargetReached(item);
+  };
+
+  const openAdjust = () => {
+    const prev = store.count(item.id, period);
+    openSetCount(item, period, () => {
+      const next = store.count(item.id, period);
+      syncChrome(next);
+      finishIfNew(prev, next);
+    });
   };
 
   const setBtn = h('button', {
@@ -189,7 +202,7 @@ function counterControl(item, period, card, ctx) {
     title: 'أدخل العدد الذي وصلت إليه',
     onclick: (e) => {
       e.stopPropagation();
-      openSetCount(item, period, () => applyCount(store.count(item.id, period)));
+      openAdjust();
     },
   }, icon('edit', 14), 'تعيين');
 
@@ -207,11 +220,14 @@ function counterControl(item, period, card, ctx) {
       btn.append(ripple);
       setTimeout(() => ripple.remove(), 620);
     }
+    const prev = store.count(item.id, period);
+    if (target > 0 && prev >= target) return;
     const next = store.increment(item.id, period);
-    const isDone = next >= target;
-    vibrate(isDone ? [12, 40, 18] : 10, store.state.settings.vibrate);
-    chime(isDone ? 'done' : 'tick', store.state.settings.sound);
-    applyCount(next);
+    const justDone = target > 0 && next >= target && prev < target;
+    vibrate(justDone ? [12, 40, 18] : 10, store.state.settings.vibrate);
+    chime(justDone ? 'done' : 'tick', store.state.settings.sound);
+    syncChrome(next);
+    finishIfNew(prev, next);
   };
 
   btn.addEventListener('pointerdown', () => {
@@ -221,7 +237,7 @@ function counterControl(item, period, card, ctx) {
       held = true;
       const next = store.decrement(item.id, period);
       vibrate(6, store.state.settings.vibrate);
-      applyCount(next);
+      syncChrome(next);
     }, 500);
   });
   btn.addEventListener('pointerup', (e) => {
@@ -229,19 +245,13 @@ function counterControl(item, period, card, ctx) {
     if (!held) doTap(e);
   });
   btn.addEventListener('pointerleave', () => clearTimeout(holdTimer));
+  btn.addEventListener('pointercancel', () => clearTimeout(holdTimer));
   btn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    openSetCount(item, period, () => applyCount(store.count(item.id, period)));
+    openAdjust();
   });
 
-  // غلاف: زر العدّ + زر التعيين يظهر في التذييل
-  // نُلحق زر التعيين بالتذييل بعد إنشاء البطاقة
-  queueMicrotask(() => {
-    const foot = card.querySelector('.dhikr__foot');
-    if (foot && !foot.querySelector('.set-count-btn')) foot.append(setBtn);
-  });
-
-  return btn;
+  return h('div', { class: 'dhikr__controls' }, setBtn, btn);
 }
 
 /** ما يحدث عند إتمام عدد ذكر */

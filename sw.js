@@ -2,7 +2,7 @@
    - يخزّن هيكل التطبيق ليعمل بدون إنترنت بعد أول زيارة
    - يخزّن صفحات القرآن المُحمَّلة (stale-while-revalidate)
 */
-const VERSION = 'wirdi-v2';
+const VERSION = 'wirdi-v3';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const QURAN = `${VERSION}-quran`;

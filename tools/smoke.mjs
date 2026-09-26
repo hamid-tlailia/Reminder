@@ -97,6 +97,7 @@ class Node {
   }
   getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 }; }
   get firstChild() { return this.children[0] || null; }
+  get lastChild() { return this.children[this.children.length - 1] || null; }
   get offsetWidth() { return 100; }
   get files() { return []; }
   get value() { return this._value ?? ''; }
@@ -214,6 +215,36 @@ step('عرض «تقدّمي»', () => stats.renderStats(ctx));
 step('عرض «الإعدادات»', () => settings.renderSettings(ctx));
 step('كل الأذكار تُبنى كبطاقات', () => {
   for (const item of store.allItems()) widgets.dhikrCard(item, ctx);
+});
+step('بطاقة الصلاة على النبي عند الإتمام تبقى سليمة', () => {
+  store.setCount('salah-nabi-am', 'morning', 10);
+  const item = store.getItem('salah-nabi-am');
+  const card = widgets.dhikrCard(item, ctx);
+  if (!card.classList.contains('is-done')) throw new Error('لم تُعلَّم مكتملة');
+  const find = (n, cls) => {
+    if (!n || !n.attrs) return null;
+    if ((n.attrs.class || '').split(/\s+/).includes(cls)) return n;
+    for (const c of n.children || []) {
+      const r = find(c, cls);
+      if (r) return r;
+    }
+    return null;
+  };
+  const controls = find(card, 'dhikr__controls');
+  if (!controls) throw new Error('غلاف العدّاد مفقود');
+  if (!find(controls, 'set-count-btn')) throw new Error('زر التعيين خرج من البطاقة');
+  if (!find(controls, 'tapper')?.classList.contains('is-done')) throw new Error('العدّاد ليس في حالة الإتمام');
+  const head = find(card, 'dhikr__head');
+  const badge = find(head, 'dhikr__done');
+  const info = find(head, 'dhikr__info');
+  if (!badge || !info) throw new Error('شارة تمّ أو زر التفاصيل مفقود عند الإتمام');
+  if (badge.parentNode !== info.parentNode) throw new Error('الشارة ليست في رأس البطاقة');
+  const foot = find(card, 'dhikr__foot');
+  if (find(foot, 'set-count-btn')) throw new Error('زر التعيين ما زال يُلحق بالتذييل');
+  // الضغط بعد الإتمام لا يتجاوز الهدف ولا يرمي خطأ
+  const tapper = find(controls, 'tapper');
+  tapper.dispatch('pointerup', { clientX: 10, clientY: 10 });
+  if (store.count('salah-nabi-am', 'morning') !== 10) throw new Error('تجاوز العدّاد بعد الإتمام');
 });
 step('العدّاد يزيد ويصل للهدف', () => {
   const id = 'tasbih-100';
