@@ -263,6 +263,18 @@ step('اليوم السابق مستقل عن اليوم', () => {
   const before = store.count('tahleel-100', 'day');
   if (before === 20) throw new Error('اختلطت الأيام');
 });
+step('الفترة تتبع الساعة تلقائيًا ويثبّتها الوضع اليدوي', () => {
+  const auto = store.autoPeriod;
+  if (auto !== 'morning' && auto !== 'evening') throw new Error(`فترة غير معروفة: ${auto}`);
+  store.setSetting('timeMode', 'auto');
+  if (store.activePeriods[0] !== auto) throw new Error('الوضع التلقائي لا يتبع الساعة');
+  store.setSetting('timeMode', 'evening');
+  if (store.activePeriods[0] !== 'evening') throw new Error('التثبيت اليدوي على المساء لا يعمل');
+  store.setSetting('timeMode', 'morning');
+  if (store.activePeriods[0] !== 'morning') throw new Error('التثبيت اليدوي على الصباح لا يعمل');
+  store.setSetting('timeMode', 'auto');
+  if (store.activePeriods[0] !== store.autoPeriod) throw new Error('لم يعد للوضع التلقائي');
+});
 step('حساب الورد والسلسلة', () => {
   const st = store.wirdStatus();
   if (typeof st.pct !== 'number' || Number.isNaN(st.pct)) throw new Error('نسبة غير صالحة');

@@ -192,15 +192,19 @@ export const store = {
     this.emit();
   },
 
+  /** الفترة بحسب الساعة وحدها: الصباح من الفجر (٥:٠٠) إلى ١٢:٠٠ — والمساء من ١٢:٠٠ إلى ٥:٠٠ فجرًا */
+  get autoPeriod() {
+    const h = new Date().getHours();
+    const m = new Date().getMinutes();
+    const t = h * 60 + m;
+    return t >= 300 && t < 720 ? 'morning' : 'evening';
+  },
+
   get activePeriods() {
     const mode = this.state.settings.timeMode;
     if (mode === 'morning') return ['morning'];
     if (mode === 'evening') return ['evening'];
-    const h = new Date().getHours();
-    const m = new Date().getMinutes();
-    const t = h * 60 + m;
-    // الصباح: من الفجر (٥:٠٠) إلى ١٢:٠٠ — المساء: من ١٢:٠٠ إلى ٥:٠٠
-    return t >= 300 && t < 720 ? ['morning'] : ['evening'];
+    return [this.autoPeriod];
   },
 
   get nextPeriod() {
